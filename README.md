@@ -8,7 +8,7 @@ Ce document détaille les choix d'implémentation et les fonctions système util
 **Objectif :** Afficher un message de bienvenue au démarrage et un prompt (`enseash %`) pour indiquer que le shell est prêt.
 
 **Explication du code :**
-Pour garantir un code propre ("clean code") et modifiable facilement, j'ai défini les messages (accueil, prompt, erreurs) via des macros (`#define`). Pour l'affichage, j'ai utilisé la fonction système `write` (plutôt que `printf`) car elle est non bufferisée et adaptée à la programmation système.
+Pour garantir un code propre ("clean code") et modifiable facilement, **nous avons défini** les messages (accueil, prompt, erreurs) via des macros (`#define`). Pour l'affichage, **nous avons utilisé** la fonction système `write` (plutôt que `printf`) car elle est non bufferisée et adaptée à la programmation système.
 
 **Fonction utilisée :**
 
@@ -22,9 +22,11 @@ Pour garantir un code propre ("clean code") et modifiable facilement, j'ai défi
 
 **Objectif :** Lire la commande de l'utilisateur et l'exécuter. Le shell gère ici les commandes simples comme `fortune` et `date` (via la commande `date` ou des alias).
 
+**Pour utiliser nos fonctions, nous écrivons dans le terminal `fortune` pour lancer la commande fortune, et un espace (` `) pour lancer la fonction date.**
+
 **Explication du code :**
 Le shell utilise une boucle infinie (`while(1)`). Il lit l'entrée, supprime le retour à la ligne (`\n`), et compare la chaîne pour savoir quoi exécuter.
-Pour lancer la commande sans quitter le shell, j'utilise le mécanisme Père/Fils :
+Pour lancer la commande sans quitter le shell, **nous utilisons** le mécanisme Père/Fils :
 
 1. `fork()` crée un processus fils.
 2. Le fils exécute la commande avec `execl` et se termine.
@@ -59,7 +61,7 @@ Pour lancer la commande sans quitter le shell, j'utilise le mécanisme Père/Fil
 **Objectif :** Quitter le shell proprement soit avec la commande "exit", soit avec `Ctrl+D`.
 
 **Explication du code :**
-Avant d'exécuter une commande, je vérifie la saisie :
+Avant d'exécuter une commande, **nous vérifions** la saisie :
 
 * **Commande "exit" :** Si `strcmp` détecte "exit", on affiche un message d'adieu et on sort de la boucle avec `break`.
 * **Ctrl+D (EOF) :** Si `read` retourne `0` (ce qui correspond à `len == 0`), cela signifie "End Of File" (l'utilisateur a fait `Ctrl+D`). On affiche le message d'adieu et on quitte.
