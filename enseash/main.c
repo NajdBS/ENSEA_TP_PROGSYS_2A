@@ -43,7 +43,17 @@ int main() {
             show_date();
             continue; 
         }
+        // Check exit
+        else if (strcmp(buf, "exit") == 0) {
+            write(1, BYE, strlen(BYE));
+            break;
+        }
         
+        // Check EOF (Ctrl+D)
+        else if (len == 0) { 
+            write(1, BYE, strlen(BYE));
+            break;
+        }
         else { 
             write(1, ERR, strlen(ERR));
             continue;
