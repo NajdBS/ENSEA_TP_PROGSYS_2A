@@ -1,6 +1,6 @@
-#include <unistd.h>      // System calls
+#include <unistd.h>      
 #include <string.h>      
-#include <stdlib.h>      // Standard library (exit)
+#include <stdlib.h>      
 #include <sys/wait.h>    
 
 
@@ -8,13 +8,14 @@
 #define PROMPT "enseash % "
 #define BYE "Bye bye...\n"
 #define ERR "Error command.\n"
+#define Buff_size 128
 
 void fortune();
 void show_date();
 
 int main() {
 
-    char buf[128];
+    char buf[Buff_size];
     int len;
     //int status;
     //pid_t pid;
@@ -28,7 +29,7 @@ int main() {
         write(1, PROMPT, strlen(PROMPT));
 
         // Read input
-        len = read(0, buf, 128);
+        len = read(0, buf, Buff_size);
 
         // remove \n (ENTER)
         buf[len - 1] = '\0';
@@ -54,6 +55,7 @@ int main() {
             write(1, BYE, strlen(BYE));
             break;
         }
+    
         else { 
             write(1, ERR, strlen(ERR));
             continue;
