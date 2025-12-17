@@ -12,7 +12,7 @@
 #define ERR "Error command.\n"
 #define Buff_size 128
 
-//unction Prototypes not utilized
+//function Prototypes not used
 int fortune(int *time_ms);
 int show_date(int *time_ms);
 
@@ -92,6 +92,8 @@ int main() {
     }
     return EXIT_SUCCESS;
 }
+
+// we thought we should implemented each command in a separate function, but we merged the logic
 
 /**
  * Function: fortune
