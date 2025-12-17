@@ -12,7 +12,7 @@
 #define ERR "Error command.\n"
 #define Buff_size 128
 
-//unction Prototypes
+//unction Prototypes not utilized
 int fortune(int *time_ms);
 int show_date(int *time_ms);
 
@@ -20,61 +20,74 @@ int main() {
     char buf[Buff_size];
     int len;
     int status;
-    char prompt[Buff_size] = PROMPT; // Initialize with default prompt
-    int exectime;
+    char prompt[Buff_size] = PROMPT; 
+    
+    struct timespec start, end; 
+    pid_t pid;
+    long exectime; 
     
     // Display welcome message
-    write(1, WELCOME, strlen(WELCOME));
+    write(STDOUT_FILENO, WELCOME, strlen(WELCOME));
     
     while (1) {
-        //Display the prompt 
-        write(1, prompt, strlen(prompt));
+        // Display the prompt 
+        write(STDOUT_FILENO, prompt, strlen(prompt));
         
         // Read user input
-        len = read(0, buf, Buff_size);
-        
+        len = read(STDIN_FILENO, buf, Buff_size);
+
         // Handle EOF (Ctrl+D)
         if (len == 0) { 
-            write(1, BYE, strlen(BYE));
+            write(STDOUT_FILENO, BYE, strlen(BYE));
             break;
         }
 
-        // Remove the trailing newline character '\n' from the input
-        if (len > 0) buf[len - 1] = '\0';
+        // Remove the trailing newline character '\n'
+        if (len > 0 && buf[len - 1] == '\n') {
+            buf[len - 1] = '\0';
+        }
 
-        //'exit' command
+        // 'exit' command
         if (strcmp(buf, "exit") == 0) {
-            write(1, BYE, strlen(BYE));
+            write(STDOUT_FILENO, BYE, strlen(BYE));
             break;
         }
-        //'fortune' command
-        else if (strcmp(buf, "fortune") == 0) {
-            status = fortune(&exectime);
-            
-            // Update prompt based on child status
-            if (WIFEXITED(status)) {
-                // Child exited normally
-                sprintf(prompt, "enseash [exit:%d | %d MS] %% ", WEXITSTATUS(status), exectime);
-            } else if (WIFSIGNALED(status)) {
-                // Child was killed by a signal
-                sprintf(prompt, "enseash [sign:%d | %d MS] %% ", WTERMSIG(status), exectime);
-            }
-        }
-        // 'empty space' to show date
-        else if (strcmp(buf, " ") == 0 || strcmp(buf, "date") == 0) { 
-            status = show_date(&exectime);
+        
+        // Start timer
+        clock_gettime(CLOCK_REALTIME, &start);
 
-            // Update prompt based on child status
-            if (WIFEXITED(status)) {
-                sprintf(prompt, "enseash [exit:%d | %d MS] %% ", WEXITSTATUS(status), exectime);
-            } else if (WIFSIGNALED(status)) {
-                sprintf(prompt, "enseash [sign:%d | %d MS] %% ", WTERMSIG(status), exectime);
-            }
+        pid = fork();
+
+        if (pid == -1) {
+            perror("fork");
+            continue;
         }
-        //Unknown command
-        else { 
-            write(1, ERR, strlen(ERR));
-            sprintf(prompt, "%s", PROMPT); 
+
+        if (pid == 0) {
+            // Child Process 
+            // Execute command using PATH
+            execlp(buf, buf, (char *)NULL);
+            
+            // If we are here, execlp failed (command not found)
+            write(STDOUT_FILENO, ERR, strlen(ERR));
+            exit(EXIT_FAILURE);
+            
+        } else {
+            // --- Parent Process ---
+            wait(&status);
+            
+            // Stop timer
+            clock_gettime(CLOCK_REALTIME, &end);
+            
+            // Calc duration in ms
+            exectime = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+
+            // Update prompt with exit code or signal
+            if (WIFEXITED(status)) {
+                sprintf(prompt, "enseash [exit:%d|%ldms] %% ", WEXITSTATUS(status), exectime);
+            } else if (WIFSIGNALED(status)) {
+                sprintf(prompt, "enseash [sign:%d|%ldms] %% ", WTERMSIG(status), exectime);
+            }
         }
     }
     return EXIT_SUCCESS;
@@ -166,7 +179,7 @@ int show_date(int *time_ms) {
         
         // Calculate elapsed time in milliseconds
         *time_ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
-
+ 
         return status;
     }
 }
