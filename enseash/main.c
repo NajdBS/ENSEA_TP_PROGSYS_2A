@@ -11,6 +11,7 @@
 #define BYE "Bye bye...\n"
 #define ERR "Error command.\n"
 #define Buff_size 128
+#define MAX_ARGS 10  // Maximum number of arguments
 
 //function Prototypes not used
 int fortune(int *time_ms);
@@ -26,6 +27,10 @@ int main() {
     pid_t pid;
     long exectime; 
     
+    // Array to store the command and its arguments
+    char *argv[MAX_ARGS]; 
+    int i;
+
     // Display welcome message
     write(STDOUT_FILENO, WELCOME, strlen(WELCOME));
     
@@ -53,6 +58,19 @@ int main() {
             break;
         }
         
+        // Parsing (Splitting string into tokens) 
+        // strtok replaces spaces with \0 and returns pointers to tokens
+        i = 0;
+        argv[i] = strtok(buf, " "); // Get first token (command name)
+        
+        while (argv[i] != NULL && i < MAX_ARGS - 1) {
+            i++;
+            argv[i] = strtok(NULL, " "); // Get next tokens
+        }
+        // argv array MUST end with NULL for execvp
+        argv[i] = NULL;
+
+
         // Start timer
         clock_gettime(CLOCK_REALTIME, &start);
 
@@ -66,7 +84,9 @@ int main() {
         if (pid == 0) {
             // Child Process 
             // Execute command using PATH
-            execlp(buf, buf, (char *)NULL);
+            //execlp(buf, buf, (char *)NULL);
+            // Child: execvp takes the command name and the array of arguments
+            execvp(argv[0], argv);
             
             // If we are here, execlp failed (command not found)
             write(STDOUT_FILENO, ERR, strlen(ERR));
