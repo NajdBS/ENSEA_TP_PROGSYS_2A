@@ -2,7 +2,9 @@
 #include <string.h>      
 #include <stdlib.h>      
 #include <sys/wait.h>    
-#include <stdio.h> // sprintf
+#include <stdio.h> 
+#include <time.h> 
+#include <sys/types.h>
 
 #define WELCOME "Bienvenue dans le Shell ENSEA.\nPour quitter, tapez 'exit'.\n"
 #define PROMPT "enseash % "
@@ -10,103 +12,161 @@
 #define ERR "Error command.\n"
 #define Buff_size 128
 
-int fortune();
-int show_date();
+//unction Prototypes
+int fortune(int *time_ms);
+int show_date(int *time_ms);
 
 int main() {
-
     char buf[Buff_size];
     int len;
     int status;
-    //pid_t pid;
-    char prompt[Buff_size] = "enseash % ";
+    char prompt[Buff_size] = PROMPT; // Initialize with default prompt
+    int exectime;
     
-    
-    // Welcome msg
+    // Display welcome message
     write(1, WELCOME, strlen(WELCOME));
     
     while (1) {
-
-        // Show prompt
-        //write(1, PROMPT, strlen(PROMPT));
+        //Display the prompt 
         write(1, prompt, strlen(prompt));
-        // Read input
+        
+        // Read user input
         len = read(0, buf, Buff_size);
         
-        // Check EOF (Ctrl+D)
+        // Handle EOF (Ctrl+D)
         if (len == 0) { 
             write(1, BYE, strlen(BYE));
             break;
         }
-        // remove \n (ENTER)
-        buf[len - 1] = '\0';
 
-        // Check fortune
-        if (strcmp(buf, "fortune") == 0) {
-            status = fortune();
-            if (WIFEXITED(status)) {
-                sprintf(prompt, "enseash [exit:%d] %% ", WEXITSTATUS(status));
-            } else if (WIFSIGNALED(status)) {
-                sprintf(prompt, "enseash [sign:%d] %% ", WTERMSIG(status));
-            }
-            continue; 
-        }
-        // Check date  
-        else if (strcmp(buf, " ") == 0) {
-            status = show_date();
-            if (WIFEXITED(status)) {
-                sprintf(prompt, "enseash [exit:%d] %% ", WEXITSTATUS(status));
-            } else if (WIFSIGNALED(status)) {
-                sprintf(prompt, "enseash [sign:%d] %% ", WTERMSIG(status));
-            }
-            continue; 
-        }
-        // Check exit
-        else if (strcmp(buf, "exit") == 0) {
+        // Remove the trailing newline character '\n' from the input
+        if (len > 0) buf[len - 1] = '\0';
+
+        //'exit' command
+        if (strcmp(buf, "exit") == 0) {
             write(1, BYE, strlen(BYE));
             break;
         }
+        //'fortune' command
+        else if (strcmp(buf, "fortune") == 0) {
+            status = fortune(&exectime);
+            
+            // Update prompt based on child status
+            if (WIFEXITED(status)) {
+                // Child exited normally
+                sprintf(prompt, "enseash [exit:%d | %d MS] %% ", WEXITSTATUS(status), exectime);
+            } else if (WIFSIGNALED(status)) {
+                // Child was killed by a signal
+                sprintf(prompt, "enseash [sign:%d | %d MS] %% ", WTERMSIG(status), exectime);
+            }
+        }
+        // 'empty space' to show date
+        else if (strcmp(buf, " ") == 0 || strcmp(buf, "date") == 0) { 
+            status = show_date(&exectime);
+
+            // Update prompt based on child status
+            if (WIFEXITED(status)) {
+                sprintf(prompt, "enseash [exit:%d | %d MS] %% ", WEXITSTATUS(status), exectime);
+            } else if (WIFSIGNALED(status)) {
+                sprintf(prompt, "enseash [sign:%d | %d MS] %% ", WTERMSIG(status), exectime);
+            }
+        }
+        //Unknown command
         else { 
             write(1, ERR, strlen(ERR));
-            continue;
+            sprintf(prompt, "%s", PROMPT); 
         }
     }
     return EXIT_SUCCESS;
 }
 
-int fortune(){
+/**
+ * Function: fortune
+ * -----------------
+ * Description: Executes the 'fortune' command in a child process and measures
+ * the execution time using clock_gettime.
+ *
+ * Input: 
+ * int *time_ms : A pointer to an integer where the execution time 
+ * (in milliseconds) will be stored.
+ *
+ * Return: 
+ * int : The exit status (or signal status) of the child process 
+ * returned by wait().
+ */
+int fortune(int *time_ms){
     pid_t pid;
     int status;
-    pid = fork();
+    struct timespec start, end;
 
-        if (pid == 0) {
-            // Child process
-            execl("/bin/sh", "sh", "-c", "fortune", (char *)NULL);
-            // ERROR
-            write(1, ERR, strlen(ERR));
-            exit(EXIT_FAILURE);
-        } else {
-            // Parent process
-            wait(&status);
-            return status;
-        }
-}
-int show_date() {
-    pid_t pid;
-    int status;
-
+    //Start the timer (Parent process)
+    clock_gettime(CLOCK_REALTIME, &start); 
+    
     pid = fork();
 
     if (pid == 0) {
-
-        execl("/bin/date", "date", (char *)NULL);
-
+        //Child Process
+        // Execute the command (replaces the current process image)
+        execl("/bin/sh", "sh", "-c", "fortune", (char *)NULL);
+        
+        // If execution reaches here, execl failed
         write(1, ERR, strlen(ERR));
         exit(EXIT_FAILURE);
-
     } else {
-       
+        //Parent Process
+        wait(&status); // Wait for the child to finish
+        
+        //Stop the timer (Parent process)
+        clock_gettime(CLOCK_REALTIME, &end); 
+    
+        //Calculate elapsed time in milliseconds
+        *time_ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+        
+        return status;
+    }
+}
+
+/**
+ * Function: show_date
+ * -------------------
+ * Description: Executes the 'date' command in a child process and measures
+ * the execution time.
+ *
+ * Input: 
+ * int *time_ms : A pointer to an integer where the execution time 
+ * (in milliseconds) will be stored.
+ *
+ * Return: 
+ * int : The exit status (or signal status) of the child process 
+ * returned by wait().
+ */
+int show_date(int *time_ms) {
+    pid_t pid;
+    int status;
+    struct timespec start, end;
+
+    //Start the timer
+    clock_gettime(CLOCK_REALTIME, &start); 
+    
+    pid = fork();
+
+    if (pid == 0) {
+        //Child Process
+        execl("/bin/date", "date", (char *)NULL);
+
+        // If execution reaches here, execl failed
+        write(1, ERR, strlen(ERR));
+        exit(EXIT_FAILURE);
+    } else {
+        //Parent Process
         wait(&status);
+        
+        //Stop the timer
+        clock_gettime(CLOCK_REALTIME, &end); 
+        
+        // Calculate elapsed time in milliseconds
+        *time_ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+
         return status;
     }
 }
