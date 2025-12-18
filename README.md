@@ -1,13 +1,13 @@
 # TP PROG SYS (enseash)
 
-Créer un micro-shell Linux .L'objectif était de comprendre comment fonctionnent les processus, les appels système et les redirections.
+Créer un micro-shell Linux . L'objectif était de comprendre comment fonctionnent les processus, les appels système et les redirections.
 
 # Question 1 : Message d'accueil et Prompt
 
 - Nous avons commencé par afficher un message de bienvenue et un prompt simple `enseash %`.
-- On a utilisé la fonction `write` au lieu de `printf` car elle est plus adaptée à la programmation système et n'utilise pas de buffer. 
+- On a utilisé la fonction `write` au lieu de `printf` car elle est plus adaptée à la programmation système et c’est ce qui est demandé dans l’énoncé du TP.
 
-# Question 2 : Exécution de commandes simples
+# Question2 : Exécution de commandes simples
 
 - Nous avons créé une boucle de lecture qui récupère la commande de l'utilisateur. 
 - On utilise `fork()` pour créer un processus fils et `execvp()` pour lancer la commande, tandis que le père attend avec `wait()`. 
