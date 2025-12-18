@@ -39,4 +39,4 @@ On cherche les symboles `>` ou `<` dans les arguments, puis on utilise `open()` 
 
 - ****
   
-Nous avons réussi à terminer le TP jusqu'à la question 7. Les questios suivantes sur les pipes et le background n'ont pas été traitées par manque de temps.
+Nous avons réussi à terminer le TP jusqu'à la question 7. Les questios suivantes n'ont pas été traitées par manque de temps.
