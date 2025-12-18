@@ -37,6 +37,6 @@ Cela nous permet de lancer des commandes plus complexes comme `ls -l` ou `hostna
 Nous avons ajouté la gestion des redirections de flux.
 On cherche les symboles `>` ou `<` dans les arguments, puis on utilise `open()` et `dup2()` pour rediriger l'entrée ou la sortie vers un fichier.
 
-- ****
+- **Avancement TP**
   
 Nous avons réussi à terminer le TP jusqu'à la question 7. Les questios suivantes n'ont pas été traitées par manque de temps.
