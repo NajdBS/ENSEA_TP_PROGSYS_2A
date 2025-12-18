@@ -1,6 +1,6 @@
-# ENSEA in the Shell (enseash)
+# TP PROG SYS (enseash)
 
-Créer un micro-shell Linux .BL'objectif était de comprendre comment fonctionnent les processus, les appels système et les redirections.
+Créer un micro-shell Linux .L'objectif était de comprendre comment fonctionnent les processus, les appels système et les redirections.
 
 # Question 1 : Message d'accueil et Prompt
 
