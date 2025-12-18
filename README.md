@@ -1,67 +1,38 @@
-# ENSEA_TP_PROGSYS_2A
-# ENSEA in the Shell (enseash) - Rapport d'avancement
+# ENSEA in the Shell (enseash)
 
-Ce document détaille les choix d'implémentation et les fonctions système utilisées pour les questions 1 à 3 du TP.
+Créer un micro-shell Linux. [cite_start]L'objectif était de comprendre comment fonctionnent les processus, les appels système et les redirections. [cite: 6, 12, 25]
 
-## Question 1 : Message d'accueil et Prompt
+# Question 1 : Message d'accueil et Prompt
 
-**Objectif :** Afficher un message de bienvenue au démarrage et un prompt (`enseash %`) pour indiquer que le shell est prêt.
+- [cite_start]Nous avons commencé par afficher un message de bienvenue et un prompt simple `enseash %`. [cite: 27, 29, 31]
+- [cite_start]On a utilisé la fonction `write` au lieu de `printf` car elle est plus adaptée à la programmation système et n'utilise pas de buffer. [cite: 19]
 
-**Explication du code :**
-Pour garantir un code propre ("clean code") et modifiable facilement, **nous avons défini** les messages (accueil, prompt, erreurs) via des macros (`#define`). Pour l'affichage, **nous avons utilisé** la fonction système `write` (plutôt que `printf`) car elle est non bufferisée et adaptée à la programmation système.
+# Question 2 : Exécution de commandes simples
 
-**Fonction utilisée :**
+- [cite_start]Nous avons créé une boucle de lecture qui récupère la commande de l'utilisateur. [cite: 32, 33]
+- [cite_start]On utilise `fork()` pour créer un processus fils et `execvp()` pour lancer la commande, tandis que le père attend avec `wait()`. [cite: 34, 35]
 
-* **write** : `ssize_t write(int fd, const void *buf, size_t count);`
-  * **Arguments :** Elle prend le descripteur de fichier (`1` pour la sortie standard `stdout`), le message à écrire, et la taille du message en octets.
-  * **Retour :** Elle retourne le nombre d'octets qui ont été réellement écrits (ou -1 en cas d'erreur).
+# Question 3 : Gestion de la sortie (exit et Ctrl+D)
 
----
+- [cite_start]Nous avons ajouté la gestion de la commande `exit` pour quitter le shell proprement. [cite: 41, 43]
+- [cite_start]Le shell s'arrête aussi si l'utilisateur fait `Ctrl+D`, en vérifiant si la fonction `read` renvoie 0. [cite: 41]
 
-## Question 2 : Exécution des commandes (REPL)
+# Question 4 : Affichage du code de retour ou du signal
 
-**Objectif :** Lire la commande de l'utilisateur et l'exécuter. Le shell gère ici les commandes simples comme `fortune` et `date` (via la commande `date` ou des alias).
+- [cite_start]Le prompt a été amélioré pour afficher le statut de la dernière commande, par exemple `[exit:0]` ou `[sign:9]`. [cite: 46, 48, 49]
+- Pour cela, on utilise les macros `WIFEXITED` et `WTERMSIG` sur le statut récupéré par `wait()`.
 
-**Pour utiliser nos fonctions, nous écrivons dans le terminal `fortune` pour lancer la commande fortune, et un espace (` `) pour lancer la fonction date.**
+# Question 5 : Mesure du temps d'exécution
 
-**Explication du code :**
-Le shell utilise une boucle infinie (`while(1)`). Il lit l'entrée, supprime le retour à la ligne (`\n`), et compare la chaîne pour savoir quoi exécuter.
-Pour lancer la commande sans quitter le shell, **nous utilisons** le mécanisme Père/Fils :
+- [cite_start]Nous avons intégré `clock_gettime` pour mesurer le temps exact mis par chaque commande. [cite: 50]
+- [cite_start]Le temps est affiché en millisecondes dans le prompt, par exemple `[exit:0|10ms]`. [cite: 54, 55]
 
-1. `fork()` crée un processus fils.
-2. Le fils exécute la commande avec `execl` et se termine.
-3. Le père attend la fin du fils avec `wait()` avant de réafficher le prompt.
+# Question 6 : Exécution de commandes avec arguments
 
-**Fonctions utilisées :**
+- [cite_start]On a modifié la lecture pour découper la commande en plusieurs arguments à l'aide de `strtok()`. [cite: 56]
+- [cite_start]Cela nous permet de lancer des commandes plus complexes comme `ls -l` ou `hostname -i`. [cite: 57, 59]
 
-* **read** : `ssize_t read(int fd, void *buf, size_t count);`
-  * **Arguments :** Elle prend le descripteur (`0` pour l'entrée standard `stdin`), un buffer pour stocker le texte, et la taille max à lire.
-  * **Retour :** Elle retourne le nombre d'octets lus (ce qui permet de placer le caractère de fin de chaîne `\0`).
+# Question 7 : Gestion des redirections (< et >)
 
-* **strcmp** : `int strcmp(const char *s1, const char *s2);`
-  * **Arguments :** Elle prend deux chaînes de caractères à comparer.
-  * **Retour :** Elle retourne `0` si les chaînes sont strictement identiques.
-
-* **fork** : `pid_t fork(void);`
-  * **Arguments :** Aucun.
-  * **Retour :** Retourne `0` au processus fils et le `PID` du fils au processus père.
-
-* **execl** : `int execl(const char *path, const char *arg, ...);`
-  * **Arguments :** Elle prend le chemin du programme (`/bin/date`), le nom de la commande, et les arguments (terminés par `NULL`).
-  * **Retour :** Elle ne retourne rien si ça marche (car le programme courant est remplacé), ou -1 si ça échoue.
-
-* **wait** : `pid_t wait(int *status);`
-  * **Arguments :** Un pointeur vers un entier pour stocker le statut de fin.
-  * **Retour :** Retourne le PID du fils qui vient de se terminer.
-
----
-
-## Question 3 : Gestion de la sortie (Exit)
-
-**Objectif :** Quitter le shell proprement soit avec la commande "exit", soit avec `Ctrl+D`.
-
-**Explication du code :**
-Avant d'exécuter une commande, **nous vérifions** la saisie :
-
-* **Commande "exit" :** Si `strcmp` détecte "exit", on affiche un message d'adieu et on sort de la boucle avec `break`.
-* **Ctrl+D (EOF) :** Si `read` retourne `0` (ce qui correspond à `len == 0`), cela signifie "End Of File" (l'utilisateur a fait `Ctrl+D`). On affiche le message d'adieu et on quitte.
+- [cite_start]Nous avons ajouté la gestion des redirections de flux. [cite: 63]
+- [cite_start]On cherche les symboles `>` ou `<` dans les arguments, puis on utilise `open()` et `dup2()` pour rediriger l'entrée ou la sortie vers un fichier. [cite: 64, 65]
